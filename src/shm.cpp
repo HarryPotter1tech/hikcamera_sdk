@@ -72,11 +72,7 @@ auto SHMRead(int shm_fd, cv::Mat& out_mat, std::chrono::steady_clock::time_point
     sem_timedwait(&image_shm->sem, &timeout);
     pthread_mutex_lock(&image_shm->mutex);
     if (image_shm->is_shm_initialized.load(std::memory_order_acquire) == 1) {
-        if (image_shm->read_index >= image_shm->write_index) {
-            image_shm->read_index = image_shm->write_index;
-        } else {
-            image_shm->read_index++;
-        }
+        image_shm->read_index = image_shm->write_index;
         auto read_index = (image_shm->read_index) % SLOT_NUM;
         auto& frame     = image_shm->imagedata[read_index];
         if (dst_w > 0 && dst_h > 0) {
