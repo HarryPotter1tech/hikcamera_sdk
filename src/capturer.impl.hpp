@@ -125,6 +125,12 @@ struct Camera::Impl final {
             return util::make_unexpected_with_error("Failed to open device", code);
         auto guard_close = util::scope_exit { [this] { MV_CC_CloseDevice(camera_handler); } };
 
+        // DIAG: print device info
+        {
+            auto info_str = util::make_information(*device);
+            fprintf(stderr, "DIAG: device opened:\n%s\n", info_str.c_str());
+        }
+
         if (device->nTLayerType == MV_GIGE_DEVICE) {
             auto size = MV_CC_GetOptimalPacketSize(camera_handler);
             if (size <= 0) return std::unexpected { "Invalid packet size" };
@@ -220,13 +226,35 @@ struct Camera::Impl final {
         if (auto ret = set(sdk::key::Height, config->height); !ret)
             return std::unexpected { ret.error() };
 
+        // DIAG: readback actual resolution
+        {
+            MVCC_INTVALUE_EX actual_w{}, actual_h{};
+            if (MV_CC_GetIntValueEx(camera_handler, "Width", &actual_w) == sdk::OK &&
+                MV_CC_GetIntValueEx(camera_handler, "Height", &actual_h) == sdk::OK) {
+                fprintf(stderr, "DIAG: resolution set %dx%d, readback %lldx%lld\n",
+                    config->width, config->height,
+                    static_cast<long long>(actual_w.nCurValue),
+                    static_cast<long long>(actual_h.nCurValue));
+            }
+            MVCC_ENUMVALUE pixel_fmt{};
+            if (MV_CC_GetEnumValue(camera_handler, "PixelFormat", &pixel_fmt) == sdk::OK) {
+                fprintf(stderr, "DIAG: PixelFormat enum value = %u (0x%x)\n",
+                    pixel_fmt.nCurValue, pixel_fmt.nCurValue);
+            }
+        }
+
         // 降缓冲区数量，防 DMA 分配失败（20MP 传感器 5×60MB=300MB 连续内存）
-        if (sdk::OK != MV_CC_SetImageNodeNum(camera_handler, 2))
+        if (sdk::OK != MV_CC_SetImageNodeNum(camera_handler, 4))
             fprintf(stderr, "WARN: SetImageNodeNum failed\n");
 
         // USB3 传输块：默认 1M，Linux 最大 0x200000(2MB)，全分辨率 raw 帧 ~20MB 需要大块
         if (sdk::OK != MV_USB_SetTransferSize(camera_handler, 0x200000))
             fprintf(stderr, "WARN: SetTransferSize failed\n");
+
+        // 设置为连续采集模式
+        if (sdk::OK != (code = MV_CC_SetEnumValue(
+                camera_handler, "AcquisitionMode", MV_ACQ_MODE_CONTINUOUS)))
+            return util::make_unexpected_with_error("Failed to set acquisition mode", code);
 
         // Start grabbing image
         if (sdk::OK != (code = MV_CC_StartGrabbing(camera_handler)))
@@ -312,7 +340,7 @@ private:
         convert_context.nSrcDataLen = frame_info.nFrameLen;
 
         convert_context.enSrcPixelType = frame_info.enPixelType;
-        convert_context.enDstPixelType = PixelType_Gvsp_BGR8_Packed;
+        convert_context.enDstPixelType = PixelType_Gvsp_RGB8_Packed;
 
         convert_context.nDstBufferSize = buffer_size;
 

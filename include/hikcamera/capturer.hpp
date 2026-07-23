@@ -17,8 +17,8 @@ struct Config {
     int white_balance_green = 512;
     int white_balance_blue  = 512;
 
-    int width  = 1920;
-    int height = 1080;
+    int width  = 5472;
+    int height = 3648;
 
     bool invert_image  = false;
     bool software_sync = false;
