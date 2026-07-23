@@ -1,5 +1,7 @@
 #include "hikcamera/shm.hpp"
 
+#include <opencv2/imgproc.hpp>
+
 namespace hikcamera {
 
 auto SHMInit(const std::string& shm_path_name, size_t shm_size) -> std::expected<int, std::string> {
@@ -58,7 +60,7 @@ auto SHMWrite(imageSHM* image_shm, Camera& camera) -> std::expected<void, std::s
 }
 
 auto SHMRead(int shm_fd, cv::Mat& out_mat, std::chrono::steady_clock::time_point& out_ts, int width,
-    int height) -> std::expected<void, std::string> {
+    int height, int dst_w, int dst_h) -> std::expected<void, std::string> {
     auto image_shm = reinterpret_cast<imageSHM*>(mmap(nullptr,
         sizeof(imageSHM), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0));
     if (image_shm == MAP_FAILED) {
@@ -77,8 +79,13 @@ auto SHMRead(int shm_fd, cv::Mat& out_mat, std::chrono::steady_clock::time_point
         }
         auto read_index = (image_shm->read_index) % SLOT_NUM;
         auto& frame     = image_shm->imagedata[read_index];
-        out_mat         = cv::Mat(height, width, CV_8UC3, frame).clone();
-        out_ts          = image_shm->timestamp[image_shm->read_index];
+        if (dst_w > 0 && dst_h > 0) {
+            cv::Mat shm_mat(height, width, CV_8UC3, frame);
+            cv::resize(shm_mat, out_mat, cv::Size(dst_w, dst_h));
+        } else {
+            out_mat = cv::Mat(height, width, CV_8UC3, frame).clone();
+        }
+        out_ts = image_shm->timestamp[image_shm->read_index];
     } else {
         pthread_mutex_unlock(&image_shm->mutex);
         munmap(image_shm, sizeof(imageSHM));

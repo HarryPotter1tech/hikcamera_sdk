@@ -36,7 +36,7 @@ auto SHMGetPtr(int shm_fd) -> std::expected<imageSHM*, std::string>;
 auto SHMReleasePtr(imageSHM* shm) -> std::expected<void, std::string>;
 auto SHMWrite(imageSHM* shm, Camera& camera) -> std::expected<void, std::string>;
 auto SHMRead(int shm_fd, cv::Mat& out_mat, std::chrono::steady_clock::time_point& out_ts,
-    int width, int height) -> std::expected<void, std::string>;
+    int width, int height, int dst_w = 0, int dst_h = 0) -> std::expected<void, std::string>;
 auto SHMClose(int shm_fd) -> std::expected<bool, std::string>;
 auto SHMUnlink(const std::string& shm_path_name) -> std::expected<bool, std::string>;
 

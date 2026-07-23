@@ -57,7 +57,7 @@ struct Camera::Impl final {
 
         convert_context.pSrcData   = info.pBufAddr;
         convert_context.pDstBuffer = buffers[fetch_and_update_buffer_index()].data();
-        code = MV_CC_ConvertPixelTypeEx(camera_handler, &convert_context);
+        code                       = MV_CC_ConvertPixelTypeEx(camera_handler, &convert_context);
         if (code != sdk::OK)
             return util::make_unexpected_with_error("Failed to convert image", code);
 
@@ -85,7 +85,7 @@ struct Camera::Impl final {
 
         convert_context.pSrcData   = info.pBufAddr;
         convert_context.pDstBuffer = static_cast<unsigned char*>(dst_buffer);
-        code = MV_CC_ConvertPixelTypeEx(camera_handler, &convert_context);
+        code                       = MV_CC_ConvertPixelTypeEx(camera_handler, &convert_context);
         if (code != sdk::OK)
             return util::make_unexpected_with_error("Failed to convert image", code);
 
