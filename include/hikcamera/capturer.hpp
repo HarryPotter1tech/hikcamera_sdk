@@ -2,6 +2,8 @@
 #include <chrono>
 #include <expected>
 #include <opencv2/core/mat.hpp>
+#include <string>
+#include <vector>
 
 namespace hikcamera {
 static constexpr auto kMaxGain = float { 16.9807 };
@@ -46,6 +48,10 @@ public:
 
     Camera(const Camera&)            = delete;
     Camera& operator=(const Camera&) = delete;
+
+    // 枚举所有可连接的相机，返回每台的序列号 (SN) 列表。
+    // 用于多相机场景下确认应填入 Config::device_serial 的值。
+    auto enum_serial_numbers() noexcept -> std::expected<std::vector<std::string>, std::string>;
 
     auto configure(const Config&) noexcept -> void;
 
